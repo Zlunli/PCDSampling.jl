@@ -1,0 +1,18 @@
+name = "PCDSampling"
+uuid = "dfbb2e35-9de8-4f3a-8f3f-5ff62bf431ae"
+version = "0.1.0"
+authors = ["Dominik Prossel <dominik.prossel@kit.edu>"]
+
+[workspace]
+projects = ["test", "benchmark"]
+
+[deps]
+
+[compat]
+julia = "^1.12"
+
+[weakdeps]
+CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
+
+[extensions]
+CUDAExt = "CUDA"
