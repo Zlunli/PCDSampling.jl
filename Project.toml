@@ -7,12 +7,16 @@ authors = ["Dominik Prossel <dominik.prossel@kit.edu>"]
 projects = ["test", "benchmark"]
 
 [deps]
-
-[compat]
-julia = "^1.12"
+Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
+OhMyThreads = "67456a42-1dca-4109-a031-0a68de7e3ad5"
 
 [weakdeps]
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 
 [extensions]
 CUDAExt = "CUDA"
+
+[compat]
+Distributions = "0.25.123"
+OhMyThreads = "0.8.5"
+julia = "^1.12"
