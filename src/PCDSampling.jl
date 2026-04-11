@@ -1,19 +1,25 @@
 module PCDSampling
 
+using LinearAlgebra
 using Distributions
 using OhMyThreads
 
 include("lookup_table.jl")
+export create_lut
 include("projections.jl")
+export Projections, project, uniform_directions_2d, random_directions, projections, directions
 include("sampling.jl")
+export cvm_grad_hess
+
+export fixed_iters, max_iters_and_small_delta
 
 function fixed_iters(max_iters)
-    iterator = Iterators.Stateful(1:max_iters)
+    iterator = Iterators.Stateful(0:max_iters)
     _ -> popfirst!(iterator) >= max_iters
 end
 
 function max_iters_and_small_delta(max_iters, eps)
-    iterator = Iterators.Stateful(1:max_iters)
+    iterator = Iterators.Stateful(0:max_iters)
     # delta -> popfirst!(iterator) >= max_iters || norm(delta) < eps
     delta -> popfirst!(iterator) >= max_iters || maximum(abs.(delta)) < eps
 end
