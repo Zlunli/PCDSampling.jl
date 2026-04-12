@@ -3,8 +3,8 @@ struct Projections{P, T}
     dirs::Matrix{T}
 end
 
-projections(projs::Projections) = projs.projections
-directions(projs::Projections) = eachcol(projs.dirs)
+get_targets(projs::Projections) = projs.projections
+get_dirs(projs::Projections) = eachcol(projs.dirs)
 Base.getindex(projs::Projections, i::Int) = (projs.projections[i], @view(projs.dirs[:, i]))
 
 function Base.iterate(projs::Projections, state=0)

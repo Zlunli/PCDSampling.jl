@@ -1,5 +1,3 @@
-using LinearAlgebra
-
 @testset "create directions" begin
     dirs = uniform_directions_2d(10)
     @test length(dirs) == 10

@@ -1,6 +1,7 @@
 using Test
 using PCDSampling
 using Distributions
+using LinearAlgebra
 
 include("PCDSampling.jl")
 include("lookup_table.jl")
