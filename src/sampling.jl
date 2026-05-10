@@ -50,7 +50,8 @@ function local_update!(X, delta_x, projections, proj_X, proj_rank)
     end
 end
 
-function pcd_sample(projections::Projections, init_samples, stop_condition; use_local=false, verbose=true)
+# TODO: Add adjustable number of threads
+function pcd_sample(projections::Projections, init_samples, stop_condition; use_local=false, verbose=true, nthreads=Threads.nthreads())
     X = init_samples
     directions = get_dirs(projections)
 

@@ -6,6 +6,32 @@ using CUDA
 
 const MvGaussianMixture = MixtureModel{Multivariate, Continuous, MvNormal}
 
+function draw_samples_gpu(dist::MultivariateDistribution, N, dirs;
+                        use_local=false, N_lut=-1, max_iters=100, eps=1e-6, stop_cond=nothing,
+                        init_samples=nothing, verbose=false)
+    if N_lut == -1
+        targets = project.(Ref(dist), dirs)
+    else
+        targets = create_lut.(project.(Ref(dist), dirs), N_lut)
+    end
+    if !isa(dirs, Matrix)
+        dirs = reduce(hcat, dirs)
+    end
+    projections = Projections(targets, dirs)
+
+    if isnothing(init_samples)
+        init_samples = rand(dist, N)
+    end
+    draw_samples_gpu(projections, init_samples; use_local, max_iters, eps, stop_cond, verbose)
+end
+
+function draw_samples_gpu(projections::Projections, init_samples; max_iters=100, eps=1e-6, stop_cond=nothing, use_local=false, verbose=false)
+    if isnothing(stop_cond)
+        stop_cond = max_iters_and_small_delta(max_iters, eps)
+    end
+    pcd_sample_gpu(projections, init_samples, stop_cond; use_local, verbose)[1]
+end
+
 function kernel_compute_radon_projection!(
     L::Int32,
     d::Int32,

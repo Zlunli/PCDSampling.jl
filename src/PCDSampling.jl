@@ -24,9 +24,11 @@ function max_iters_and_small_delta(max_iters, eps)
     delta -> popfirst!(iterator) >= max_iters || maximum(abs.(delta)) < eps
 end
 
+
+# TODO: Parallel projections and lut creation
 function draw_samples(dist::MultivariateDistribution, N, dirs;
                         use_local=false, N_lut=-1, max_iters=100, eps=1e-6, stop_cond=nothing,
-                        init_samples=nothing, verbose=false)
+                        init_samples=nothing, verbose=false, nthreads=Threads.nthreads())
     if N_lut == -1
         targets = project.(Ref(dist), dirs)
     else
@@ -40,14 +42,15 @@ function draw_samples(dist::MultivariateDistribution, N, dirs;
     if isnothing(init_samples)
         init_samples = rand(dist, N)
     end
-    draw_samples(projections, init_samples; use_local, max_iters, eps, stop_cond, verbose)
+    draw_samples(projections, init_samples; use_local, max_iters, eps, stop_cond, verbose, nthreads)
 end
 
-function draw_samples(projections::Projections, init_samples; max_iters=100, eps=1e-6, stop_cond=nothing, use_local=false, verbose=false)
+function draw_samples(projections::Projections, init_samples; max_iters=100, eps=1e-6, stop_cond=nothing,
+                        use_local=false, verbose=false, nthreads=Threads.nthreads())
     if isnothing(stop_cond)
         stop_cond = max_iters_and_small_delta(max_iters, eps)
     end
-    pcd_sample(projections, init_samples, stop_cond; use_local, verbose)[1]
+    pcd_sample(projections, init_samples, stop_cond; use_local, verbose, nthreads)[1]
 end
 
 end # module PCDSampling
