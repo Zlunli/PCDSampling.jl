@@ -4,8 +4,6 @@ using CUDA
 # using SpecialFunctions
 # using IrrationalConstants
 
-const MvGaussianMixture = MixtureModel{Multivariate, Continuous, MvNormal}
-
 function draw_samples_gpu(dist::MultivariateDistribution, N, dirs;
                         use_local=false, N_lut=-1, max_iters=100, eps=1e-6, stop_cond=nothing,
                         init_samples=nothing, verbose=false)
@@ -30,37 +28,6 @@ function draw_samples_gpu(projections::Projections, init_samples; max_iters=100,
         stop_cond = max_iters_and_small_delta(max_iters, eps)
     end
     pcd_sample_gpu(projections, init_samples, stop_cond; use_local, verbose)[1]
-end
-
-function kernel_compute_radon_projection!(
-    L::Int32,
-    d::Int32,
-    K::Int32,
-
-    positions::CuDeviceMatrix{T},
-
-    directions::CuDeviceMatrix{T},
-    projections::CuDeviceMatrix{T},
-) where {T <: AbstractFloat}
-    dirac_idx = (blockIdx().x - 1) * blockDim().x + threadIdx().x
-    
-    direction_idx = blockIdx().y
-
-    if dirac_idx > L || direction_idx > K
-        return
-    end
-
-    r_proj = zero(T)
-
-    @inbounds for j in 1:d
-        u_j = directions[j, direction_idx]
-        x_j = positions[j, dirac_idx]
-        r_proj += u_j * x_j
-    end
-
-    projections[dirac_idx, direction_idx] = r_proj
-
-    return nothing
 end
 
 function compute_grad_hess_lut!(
@@ -329,26 +296,12 @@ function pcd_global_gpu(target_dist::Distribution,
 
     blocks_proj  = (cld(L32, Tpb32), K32)
     threads_proj = (Tpb32,)
-    @cuda threads=threads_proj blocks=blocks_proj kernel_compute_radon_projection!(
-                L32, d32, K32, cu_positions, cu_directions, cu_projections)
-
-    CUDA.sortperm!(cu_sort_idx32, cu_projections; dims=1)
-
-    @. cu_row_idx = (IType(cu_sort_idx32) - IType(1)) % L32 + IType(1)
 
     blocks_inv  = (cld(L32, Tpb32), K32)
     threads_inv = (Tpb32,)
-    @cuda threads=threads_inv blocks=blocks_inv kernel_build_inv_sort_idx!(
-        cu_inv_sort_idx, cu_row_idx, L32, K32)
     
     threads_cvm = (Tpb32, Int32(1), Int32(1))
     blocks_cvm  = (cld(L32, Tpb32), K32, Int32(1))
-    CUDA.@sync @cuda threads=threads_cvm blocks=blocks_cvm compute_grad_hess_lut!(
-        L32, K32,
-        grad_d, hess_d,
-        cu_projections, cu_dm_weights, cu_inv_sort_idx,
-        cu_lut_r, cu_lut_cdf, cu_lut_pdf, N_grid32
-    )
 
     warps_per_block = 16
     t_dims_red = (warps_per_block*32,)
@@ -356,22 +309,15 @@ function pcd_global_gpu(target_dist::Distribution,
     nvals_tri = d * (d+1) ÷ 2 * L
     b_dims_hess_red = (ceil(Int, nvals_tri / warps_per_block),)
 
-    @cuda threads=t_dims_red blocks=b_dims_grad_red reduce_kernel_grad!(grad_accum_d, grad_d, cu_directions)
-    @cuda threads=t_dims_red blocks=b_dims_hess_red reduce_kernel_hess!(hess_accum_d, hess_d, cu_directions)
-    d_pivot, info, d_LU = CUDA.CUBLAS.getrf_strided_batched!(hess_accum_d, true)
-    info2, delta_d = CUDA.CUBLAS.getrs_strided_batched!('N', d_LU, reshape(grad_accum_d, (d, 1, L)), d_pivot)
-    delta_d = reshape(delta_d, d, L)
 
-    cu_positions .+= delta_d
-    norm_cpu = only(CUDA.maximum(abs.(delta_d)))
-
+    norm_cpu = Inf # Make sure to enter loop
     iters = 0
     while !stop_condition(norm_cpu)
         delta_d .= 0
 
         blocks_proj  = (cld(L32, Tpb32), K32)
         threads_proj = (Tpb32,)
-        @cuda threads=threads_proj blocks=blocks_proj kernel_compute_radon_projection_and_delta!(
+        @cuda threads=threads_proj blocks=blocks_proj kernel_compute_radon_projection!(
             L32, d32, K32,
             cu_positions, cu_directions,
             cu_projections,
@@ -489,7 +435,7 @@ function pcd_local_gpu(target_dist::Distribution,
 
         blocks_proj  = (cld(L32, Tpb32), K32)
         threads_proj = (Tpb32,)
-        @cuda threads=threads_proj blocks=blocks_proj kernel_compute_radon_projection_and_delta!(
+        @cuda threads=threads_proj blocks=blocks_proj kernel_compute_radon_projection!(
             L32, d32, K32,
             cu_positions, cu_directions,
             cu_projections,
@@ -659,7 +605,7 @@ function reduce_kernel_grad!(grad, vproj_grad, proj)
     return
 end
 
-function kernel_compute_radon_projection_and_delta!(
+function kernel_compute_radon_projection!(
     L::Int32, d::Int32, K::Int32,
     positions::CuDeviceMatrix{T},
     directions::CuDeviceMatrix{T},
@@ -680,3 +626,34 @@ function kernel_compute_radon_projection_and_delta!(
     @inbounds projections[i, k] = r
     return
 end
+
+# function kernel_compute_radon_projection!(
+#     L::Int32,
+#     d::Int32,
+#     K::Int32,
+
+#     positions::CuDeviceMatrix{T},
+
+#     directions::CuDeviceMatrix{T},
+#     projections::CuDeviceMatrix{T},
+# ) where {T <: AbstractFloat}
+#     dirac_idx = (blockIdx().x - 1) * blockDim().x + threadIdx().x
+    
+#     direction_idx = blockIdx().y
+
+#     if dirac_idx > L || direction_idx > K
+#         return
+#     end
+
+#     r_proj = zero(T)
+
+#     @inbounds for j in 1:d
+#         u_j = directions[j, direction_idx]
+#         x_j = positions[j, dirac_idx]
+#         r_proj += u_j * x_j
+#     end
+
+#     projections[dirac_idx, direction_idx] = r_proj
+
+#     return
+# end

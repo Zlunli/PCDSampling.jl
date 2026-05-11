@@ -3,8 +3,9 @@ function cvm_grad_hess(dist::UnivariateDistribution, x, i, N)
     dirac_cdf - cdf(dist, x), pdf(dist, x)
 end
 
-function netwon_step!(X, delta_x, projections, proj_X, proj_rank)
-    @tasks for i in axes(X, 2)           
+function netwon_step!(X, delta_x, projections, proj_X, proj_rank; nthreads=Threads.nthreads())
+    @tasks for i in axes(X, 2)
+        @set ntasks=nthreads           
         @local begin
             local_delta = zeros(eltype(X), size(X, 1))
             hess_x = zeros(eltype(X), size(X, 1), size(X, 1))
@@ -35,8 +36,9 @@ function netwon_step!(X, delta_x, projections, proj_X, proj_rank)
     end
 end
 
-function local_update!(X, delta_x, projections, proj_X, proj_rank)
+function local_update!(X, delta_x, projections, proj_X, proj_rank; nthreads=Threads.nthreads())
     @tasks for i in axes(X, 2)
+        @set ntasks=nthreads           
         delta_x[:, i] .= 0.0
         @inbounds for (m, (target, dir)) in enumerate(projections)
             step, hess_step = cvm_grad_hess(target, proj_X[i, m], proj_rank[i, m], size(X, 2))
@@ -50,7 +52,6 @@ function local_update!(X, delta_x, projections, proj_X, proj_rank)
     end
 end
 
-# TODO: Add adjustable number of threads
 function pcd_sample(projections::Projections, init_samples, stop_condition; use_local=false, verbose=true, nthreads=Threads.nthreads())
     X = init_samples
     directions = get_dirs(projections)
@@ -72,6 +73,8 @@ function pcd_sample(projections::Projections, init_samples, stop_condition; use_
 
     while !stop_condition(delta_x)
         @tasks for i in eachindex(directions)
+            @set ntasks=nthreads           
+
             mul!(@view(proj_X[:, i])', directions[i]', X)
             sp = @view(proj_sp[:, i])
 
