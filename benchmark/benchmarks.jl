@@ -49,7 +49,7 @@ function test_benchmark()
     do_benchmark(runs, use_gpu=true, use_local=true)
 end
 
-function do_benchmark(runs; max_iters=5000, eps=1e-3, use_local=false, use_gpu=false, n_repeats=40, result_path="./bench_results", filename="benchmarks_thresh_1e-3_refactored")
+function do_benchmark(runs; max_iters=5000, eps=1e-3, use_local=false, use_gpu=false, n_repeats=40, result_path="./bench_results", filename="benchmarks_thresh_1e-3")
     Random.seed!(42)
     if use_local
         filename *= "_local"
