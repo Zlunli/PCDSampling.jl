@@ -35,14 +35,18 @@ function benchmark()
                 [[500], [200], [2], [1000]]]
                 
     runs = build_runs_from_grids(grids)
-    do_benchmark(runs, use_local=false)
-    do_benchmark(runs, use_local=true)
+    do_benchmark(runs, use_gpu=false, use_local=false)
+    do_benchmark(runs, use_gpu=false, use_local=true)
+    do_benchmark(runs, use_gpu=true, use_local=false)
+    do_benchmark(runs, use_gpu=true, use_local=true)
 end
 
 function test_benchmark()
     runs = build_runs_from_grids([[[100], [100], [4], [200]]])
-    do_benchmark(runs, use_local=false)
-    do_benchmark(runs, use_local=true)
+    do_benchmark(runs, use_gpu=false, use_local=false)
+    do_benchmark(runs, use_gpu=false, use_local=true)
+    do_benchmark(runs, use_gpu=true, use_local=false)
+    do_benchmark(runs, use_gpu=true, use_local=true)
 end
 
 function do_benchmark(runs; max_iters=5000, eps=1e-3, use_local=false, use_gpu=false, n_repeats=40, result_path="./bench_results", filename="benchmarks_thresh_1e-3_refactored")
