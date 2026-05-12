@@ -24,18 +24,19 @@ function max_iters_and_small_delta(max_iters, eps)
     delta -> popfirst!(iterator) >= max_iters || maximum(abs.(delta)) < eps
 end
 
-# TODO: Parallel projections and lut creation
 function draw_samples(dist::MultivariateDistribution, N, dirs;
                         use_local=false, N_lut=-1, max_iters=100, eps=1e-6, stop_cond=nothing,
                         init_samples=nothing, verbose=false, nthreads=Threads.nthreads())
-    if N_lut == -1
-        targets = project.(Ref(dist), dirs)
-    else
-        targets = create_lut.(project.(Ref(dist), dirs), N_lut)
-    end
     if !isa(dirs, Matrix)
         dirs = reduce(hcat, dirs)
     end
+    
+    if N_lut == -1
+        targets = tcollect(project(dist, d) for d in eachcol(dirs))
+    else
+        targets = tcollect(LookupTable, create_lut(project(dist, d), N_lut) for d in eachcol(dirs))
+    end
+
     projections = Projections(targets, dirs)
 
     if isnothing(init_samples)

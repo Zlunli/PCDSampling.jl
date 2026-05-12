@@ -87,7 +87,7 @@ end
 function create_plots()
     base_result_path = "benchmark/bench_results"
     pathjl = joinpath(base_result_path, "benchmarks_thresh_1e-3_gpu.csv")
-    pathjl_local = joinpath(base_result_path, "benchmarks_thresh_1e-3_gpu_local.csv")
+    pathjl_local = joinpath(base_result_path, "benchmarks_thresh_1e-3_local_gpu.csv")
     pathjlc = joinpath(base_result_path, "benchmarks_thresh_1e-3.csv")
     pathjlc_local = joinpath(base_result_path, "benchmarks_thresh_1e-3_local.csv")
 
@@ -134,4 +134,4 @@ function create_plot_py_jl()
 end
 
 create_plots()
-create_plot_py_jl()
+# create_plot_py_jl()
