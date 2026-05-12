@@ -3,6 +3,7 @@ using BenchmarkTools
 using Random, Distributions, LinearAlgebra, Statistics
 using CSV
 using Tables
+using CUDA
 
 function build_runs_from_grids(grids)
     runs = Vector{NTuple{4, Int64}}()
@@ -43,13 +44,13 @@ end
 
 function test_benchmark()
     runs = build_runs_from_grids([[[100], [100], [4], [200]]])
-    do_benchmark(runs, use_gpu=false, use_local=false)
-    do_benchmark(runs, use_gpu=false, use_local=true)
+    # do_benchmark(runs, use_gpu=false, use_local=false)
+    # do_benchmark(runs, use_gpu=false, use_local=true)
     do_benchmark(runs, use_gpu=true, use_local=false)
     do_benchmark(runs, use_gpu=true, use_local=true)
 end
 
-function do_benchmark(runs; max_iters=5000, eps=1e-3, use_local=false, use_gpu=false, n_repeats=40, result_path="./bench_results", filename="benchmarks_thresh_1e-3")
+function do_benchmark(runs; max_iters=5000, eps=1e-3, use_local=false, use_gpu=false, n_repeats=40, result_path="./benchmark/bench_results", filename="benchmarks_thresh_1e-3")
     Random.seed!(42)
     if use_local
         filename *= "_local"
@@ -99,5 +100,5 @@ function test_gauss_pcd()
     MKL.set_num_threads(1)
 end
 
-benchmark()
-# test_benchmark()
+# benchmark()
+test_benchmark()

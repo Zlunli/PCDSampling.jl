@@ -340,7 +340,7 @@ function reduce_kernel_hess!(hess, vpdf, proj)
             val += 0.0
         end
     end
-    val = CUDA.reduce_warp(+, val)
+    val = CUDA.CUDACore.reduce_warp(+, val)
 
     if lane == 1
         hess[d1, d2, i] = val / K
@@ -373,7 +373,7 @@ function reduce_kernel_grad!(grad, vproj_grad, proj)
             val += vproj_grad[i, k+lane-1] * proj[d_idx, k+lane-1]
         end
     end
-    val = CUDA.reduce_warp(+, val)
+    val = CUDA.CUDACore.reduce_warp(+, val)
 
     if lane == 1
         grad[d_idx, i] = val / K
