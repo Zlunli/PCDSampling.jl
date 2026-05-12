@@ -11,7 +11,7 @@ export Projections, project, uniform_directions_2d, random_directions, get_projs
 include("sampling.jl")
 export cvm_grad_hess
 
-export fixed_iters, max_iters_and_small_delta, draw_samples
+export fixed_iters, max_iters_and_small_delta, draw_samples, draw_samples_gpu
 
 function fixed_iters(max_iters)
     iterator = Iterators.Stateful(0:max_iters)
@@ -23,7 +23,6 @@ function max_iters_and_small_delta(max_iters, eps)
     # delta -> popfirst!(iterator) >= max_iters || norm(delta) < eps
     delta -> popfirst!(iterator) >= max_iters || maximum(abs.(delta)) < eps
 end
-
 
 # TODO: Parallel projections and lut creation
 function draw_samples(dist::MultivariateDistribution, N, dirs;
@@ -51,6 +50,13 @@ function draw_samples(projections::Projections, init_samples; max_iters=100, eps
         stop_cond = max_iters_and_small_delta(max_iters, eps)
     end
     pcd_sample(projections, init_samples, stop_cond; use_local, verbose, nthreads)[1]
+end
+
+function draw_samples_gpu(dist::MultivariateDistribution, N, dirs; use_local=false, N_lut=-1, 
+                max_iters=100, eps=1e-6, stop_cond=nothing, init_samples=nothing, verbose=false)
+    ext = Base.get_extension(@__MODULE__, :PCDSamplingCUDAExt)
+    ext === nothing && error("CUDA extension not loaded. Try 'using CUDA'.")
+    return ext.draw_samples_gpu(dist, N, dirs; use_local, N_lut, max_iters, eps, stop_cond, init_samples, verbose)
 end
 
 end # module PCDSampling

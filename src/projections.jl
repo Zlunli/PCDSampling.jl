@@ -1,3 +1,4 @@
+#TODO: make generic to support CuArrays
 struct Projections{P, T}
     projections::Vector{P}
     dirs::Matrix{T}
