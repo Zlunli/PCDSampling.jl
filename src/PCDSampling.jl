@@ -49,7 +49,7 @@ function draw_samples(projections::Projections, init_samples; max_iters=100, eps
     if isnothing(stop_cond)
         stop_cond = max_iters_and_small_delta(max_iters, eps)
     end
-    pcd_sample(projections, init_samples, stop_cond; use_local, verbose, nthreads)[1]
+    pcd_sample(projections, init_samples, stop_cond; use_local, verbose, nthreads)
 end
 
 function draw_samples_gpu(dist::MultivariateDistribution, N, dirs; use_local=false, N_lut=-1, 

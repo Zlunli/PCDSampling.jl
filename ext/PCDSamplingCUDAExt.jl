@@ -28,7 +28,7 @@ function draw_samples_gpu(dist::MultivariateDistribution, N, dirs; use_local=fal
         stop_cond = max_iters_and_small_delta(max_iters, eps)
     end
 
-    pcd_sample_gpu(luts, CuArray(dirs), init_samples, stop_cond; use_local, verbose)[1]
+    pcd_sample_gpu(luts, CuArray(dirs), init_samples, stop_cond; use_local, verbose)
 end
 
 function prepare_lookup_tables(T, dist::MultivariateMixture, directions, N_lut)
