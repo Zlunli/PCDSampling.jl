@@ -44,8 +44,8 @@ end
 
 function test_benchmark()
     runs = build_runs_from_grids([[[100], [100], [4], [200]]])
-    # do_benchmark(runs, use_gpu=false, use_local=false)
-    # do_benchmark(runs, use_gpu=false, use_local=true)
+    do_benchmark(runs, use_gpu=false, use_local=false)
+    do_benchmark(runs, use_gpu=false, use_local=true)
     do_benchmark(runs, use_gpu=true, use_local=false)
     do_benchmark(runs, use_gpu=true, use_local=true)
 end
