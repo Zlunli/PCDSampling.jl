@@ -259,7 +259,7 @@ function compute_grad_hess_lut!(
     end
 
     N_grid = size(lut_r, 1)
-    begin
+    @inbounds begin
         r = projections[i, k]
 
         emp_cdf = 1/L * (inv_sort_idx[i, k] - T(0.5))
@@ -333,7 +333,7 @@ function reduce_kernel_hess!(hess, vpdf, proj)
     end
 
     val = 0.0
-    for k in 1:32:K
+    @inbounds for k in 1:32:K
         if k+lane-1 <= K
             val += vpdf[i, k+lane-1] * proj[d1, k+lane-1] * proj[d2, k+lane-1]
         else
@@ -368,7 +368,7 @@ function reduce_kernel_grad!(grad, vproj_grad, proj)
     end
 
     val = 0.0
-    for k in 1:32:K
+    @inbounds for k in 1:32:K
         if k+lane-1 <= K
             val += vproj_grad[i, k+lane-1] * proj[d_idx, k+lane-1]
         end

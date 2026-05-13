@@ -4,6 +4,7 @@ using Random, Distributions, LinearAlgebra, Statistics
 using CSV
 using Tables
 using CUDA
+using MKL
 
 function build_runs_from_grids(grids)
     runs = Vector{NTuple{4, Int64}}()
@@ -23,8 +24,6 @@ function build_runs_from_grids(grids)
 end
 
 function benchmark()
-    # grid = [[[20, 50, 100, 200, 500, 1000, 2000, 3000, 5000], [1], [2], [1000]]]
-    
     # grid = [[[20, 50, 100, 200, 500, 1000, 3000, 5000], [200], [2], [1000]],
     #             [[2000], [200], [4, 6, 8, 10], [1000]],
     #             [[2000], [200], [2], [100, 200, 500, 2000]],
@@ -34,40 +33,38 @@ function benchmark()
                 [[500], [200], [4, 6, 8, 10], [1000]],
                 [[500], [200], [2], [100, 200, 500, 2000]],
                 [[500], [200], [2], [1000]]]
-                
+
     runs = build_runs_from_grids(grids)
-    do_benchmark(runs, use_gpu=false, use_local=false)
-    do_benchmark(runs, use_gpu=false, use_local=true)
-    do_benchmark(runs, use_gpu=true, use_local=false)
-    do_benchmark(runs, use_gpu=true, use_local=true)
+    do_benchmark(runs, use_gpu=Val(false), use_local=false)
+    do_benchmark(runs, use_gpu=Val(false), use_local=true)
+    do_benchmark(runs, use_gpu=Val(true), use_local=false)
+    do_benchmark(runs, use_gpu=Val(true), use_local=true)
 end
 
 function test_benchmark()
-    runs = build_runs_from_grids([[[100], [100], [4], [200]]])
-    # runs = build_runs_from_grids([[[500], [200], [2], [100]]])
-    do_benchmark(runs, use_gpu=false, use_local=false)
-    do_benchmark(runs, use_gpu=false, use_local=true)
-    do_benchmark(runs, use_gpu=true, use_local=false)
-    do_benchmark(runs, use_gpu=true, use_local=true)
+    runs = build_runs_from_grids([[[500], [200], [2], [100]]])
+    do_benchmark(runs, use_gpu=Val(false), use_local=false, filename="test_benchmark")
+    do_benchmark(runs, use_gpu=Val(false), use_local=true, filename="test_benchmark")
+    do_benchmark(runs, use_gpu=Val(true), use_local=false, filename="test_benchmark")
+    do_benchmark(runs, use_gpu=Val(true), use_local=true, filename="test_benchmark")
 end
 
-function do_benchmark(runs; max_iters=5000, eps=1e-3, use_local=false, use_gpu=false, n_repeats=40, result_path="./benchmark/bench_results", filename="benchmarks_thresh_1e-3")
+function do_benchmark(runs; max_iters=5000, eps=1e-3, use_local=false, use_gpu=Val(false), n_repeats=40, result_path="./benchmark/bench_results", filename="benchmarks_thresh_1e-3")
     Random.seed!(42)
+
     if use_local
         filename *= "_local"
     end
-    if use_gpu
+    if use_gpu == Val(true)
         filename *= "_gpu"
     end
 
     filepath = joinpath(result_path, filename*".csv")
     CSV.write(filepath, [], header=["n_samples", "n_components", "dims", "n_projs", ("iters_$i" for i in 1:n_repeats)..., ("run_$i" for i in 1:n_repeats)...], delim=",")
 
-    nthreads = Threads.nthreads()
-
     for run in runs
         N, C, D, P = run
-        println("N: $N, C: $C, D: $D, P: $P")
+        println("N: $N, C: $C, D: $D, P: $P, GPU: $use_gpu, Local: $use_local")
         dirs = random_directions(D, P)
 
         all_times = -1*ones(n_repeats)
@@ -76,19 +73,20 @@ function do_benchmark(runs; max_iters=5000, eps=1e-3, use_local=false, use_gpu=f
         
         # warmup
         target = MixtureModel([MvNormal(randn(D), Diagonal(randn(D).^2)) for _ in 1:C])
-        if use_gpu
+        if use_gpu == Val(true)
             t = @elapsed _, iters = draw_samples_gpu(target, N, dirs; max_iters, eps, use_local, N_lut=128, verbose=false)
         else
-            t = @elapsed _, iters = draw_samples(target, N, dirs; max_iters, eps, use_local, N_lut=128, nthreads, verbose=false)
+            t = @elapsed _, iters = draw_samples(target, N, dirs; max_iters, eps, use_local, N_lut=128, verbose=false)
         end
-    
+        
         for i in 1:n_repeats
             target = MixtureModel([MvNormal(randn(D), Diagonal(randn(D).^2)) for _ in 1:C])
-            if use_gpu
+            if use_gpu == Val(true)
                 t = @elapsed _, iters = draw_samples_gpu(target, N, dirs; max_iters, eps, use_local, N_lut=128, verbose=false)
             else
-                t = @elapsed _, iters = draw_samples(target, N, dirs; max_iters, eps, use_local, N_lut=128, nthreads, verbose=false)
+                t = @elapsed _, iters = draw_samples(target, N, dirs; max_iters, eps, use_local, N_lut=128, verbose=false)
             end
+
             all_times[i] = t
             all_iters[i] = iters
             total_elapsed += t
@@ -101,8 +99,5 @@ function do_benchmark(runs; max_iters=5000, eps=1e-3, use_local=false, use_gpu=f
     end
 end
 
-# MKL.set_num_threads(1)
-# LinearAlgebra.BLAS.set_num_threads(1) # otherwise we get weird performance results when using multiple threads for the gradient computation
-
-benchmark()
 # test_benchmark()
+benchmark()

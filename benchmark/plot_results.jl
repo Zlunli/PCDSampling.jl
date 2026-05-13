@@ -60,16 +60,15 @@ function create_plot(all_data, C, D, P, N, title, xlabel, ylabel, filename)
 
         println(x)
 
-        iters_all = [collect(row[5:14]) for row in eachrow(rows)]
+        iters_all = [collect(row[[n for n in names(rows) if occursin("iters", n)]]) for row in eachrow(rows)]
         iters = [it[it .!= -1] for it in iters_all]
     
-        ts_all = [collect(row[15:end]) for row in eachrow(rows)]
+        ts_all = [collect(row[[n for n in names(rows) if occursin("run", n)]]) for row in eachrow(rows)]
         ts = [ts[ts .!= -1] for ts in ts_all]
+
         md = median.(ts)
         ts = [t[t .< 2*md[i]] for (i, t) in enumerate(ts)]
 
-        # ts = [collect(skipmissing(row[5:end])) for row in eachrow(rows)]
-        
         ms = mean.(ts)
         cs = std.(ts)
 
