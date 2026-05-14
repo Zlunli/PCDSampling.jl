@@ -112,11 +112,11 @@ end
 function create_plot_py_jl()
     base_result_path = "benchmark/bench_results"
 
-    pathjl_local = joinpath(base_result_path, "benchmarks_steps_100_gpu_local.csv")
-    pathjlc_local = joinpath(base_result_path, "benchmarks_steps_100_local.csv")
+    pathjl_local = joinpath(base_result_path, "benchmarks_100_iters_local_gpu.csv")
+    pathjlc_local = joinpath(base_result_path, "benchmarks_100_iters_local.csv")
 
-    pathpyg = "/home/PCD_sampling_py/benchmarking/benchmarking_results/pcd_results_cuda_steps=100_1comp.csv"
-    #pathpyc = "/home/PCD_sampling_py/benchmarking/benchmarking_results/pcd_results_cpu_steps=100.csv"
+    pathpyg = joinpath(base_result_path, "python_results_100_iterations_gpu.csv")
+    #pathpyc = joinpath(base_result_path, "python_results_100_iterations.csv")
 
     C = 1
     D = 2
@@ -129,8 +129,51 @@ function create_plot_py_jl()
     all_data = [("J+CPU+O", datajlc_local), ("J+GPU+O", datajl_local), ("P+GPU+O", data_py_gpu)]
     
     base_plot_path = "benchmark/bench_plots"
-    create_plot(all_data, C, D, P, nothing, "C=$C, D=$D, P=$P", "number of samples", "runtime in s", joinpath(base_plot_path, "jl_py_num_samples"))
+    save_path = joinpath(base_plot_path, "jl_py_num_samples")
+
+    with_theme(theme_latexfonts()) do
+    f = Figure(size=(1000, 700))
+    lsize=35
+    tsize=30
+    msize=25
+
+    xax_scale = log10
+    xticks = [20, 100, 1000, 5000]
+
+    ax = Axis(f[1, 1], title="C=$C, D=$D, P=$P", xlabel="number of samples", ylabel="runtime in s", titlesize=lsize,
+        xlabelsize=lsize, ylabelsize=lsize, xticklabelsize=tsize, yticklabelsize=tsize, xticks=xticks,
+        xscale=xax_scale #, yscale=log10
+        )
+
+    for (key, data) in all_data
+        rows = data[:, :]
+        x = rows[!, 1]
+
+        rsp = sortperm(x)
+        x = x[rsp]
+        rows = rows[rsp, :]
+
+        println(x)
+
+        ts_all = [collect(row[[n for n in names(rows) if occursin("run", n) || occursin("time", n)]]) for row in eachrow(rows)]
+        ts = [ts[ts .!= -1] for ts in ts_all]
+
+        md = median.(ts)
+        ts = [t[t .< 2*md[i]] for (i, t) in enumerate(ts)]
+
+        ms = mean.(ts)
+        cs = std.(ts)
+
+        band!(ax, x, ms .- 3.0 .* cs, ms .+ 3 .* cs, alpha=0.5)
+        scatter!(ax, x, ms, label=key, markersize=msize)
+        lines!(ax, x, ms, linewidth=4)
+    end
+
+    axislegend(ax, position=:lt, labelsize=lsize, markersize=msize)
+    save(save_path*".svg", f)
+    save(save_path*".pdf", f)
+end
 end
 
 create_plots()
-# create_plot_py_jl()
+create_plot_py_jl()

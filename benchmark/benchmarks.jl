@@ -23,13 +23,19 @@ function build_runs_from_grids(grids)
     return runs
 end
 
-function benchmark()
-    # grid = [[[20, 50, 100, 200, 500, 1000, 3000, 5000], [200], [2], [1000]],
-    #             [[2000], [200], [4, 6, 8, 10], [1000]],
-    #             [[2000], [200], [2], [100, 200, 500, 2000]],
-    #             [[2000], [200], [2], [1000]]]
+function benchmark_fixed_iters()
+    grids = [[[20, 50, 100, 200, 500, 1000, 2000, 3000, 5000], 
+                [1], [2], [1000]]]
 
-    grids =[[[20, 50, 100, 200, 1000], [200], [2], [1000]],
+    runs = build_runs_from_grids(grids)
+    do_benchmark(runs, max_iters=100, eps=0.0, filename="benchmarks_100_iters", use_gpu=Val(false), use_local=false)
+    do_benchmark(runs, max_iters=100, eps=0.0, filename="benchmarks_100_iters", use_gpu=Val(false), use_local=true)
+    do_benchmark(runs, max_iters=100, eps=0.0, filename="benchmarks_100_iters", use_gpu=Val(true), use_local=false)
+    do_benchmark(runs, max_iters=100, eps=0.0, filename="benchmarks_100_iters", use_gpu=Val(true), use_local=true)
+end
+
+function benchmark()
+    grids = [[[20, 50, 100, 200, 1000], [200], [2], [1000]],
                 [[500], [200], [4, 6, 8, 10], [1000]],
                 [[500], [200], [2], [100, 200, 500, 2000]],
                 [[500], [200], [2], [1000]]]
@@ -100,4 +106,6 @@ function do_benchmark(runs; max_iters=5000, eps=1e-3, use_local=false, use_gpu=V
 end
 
 # test_benchmark()
+
 benchmark()
+benchmark_fixed_iters()

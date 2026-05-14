@@ -90,9 +90,9 @@ function pcd_sample(projections::Projections, init_samples, stop_condition; use_
         end
 
         if use_local
-            local_update!(X, delta_x, projections, proj_X, proj_rank)
+            local_update!(X, delta_x, projections, proj_X, proj_rank; nthreads)
         else
-            netwon_step!(X, delta_x, projections, proj_X, proj_rank)
+            netwon_step!(X, delta_x, projections, proj_X, proj_rank; nthreads)
         end
         iters += 1
     end
