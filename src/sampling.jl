@@ -3,7 +3,7 @@ function cvm_grad_hess(dist::UnivariateDistribution, x, i, N)
     dirac_cdf - cdf(dist, x), pdf(dist, x)
 end
 
-function netwon_step!(X, delta_x, projections, proj_X, proj_rank; nthreads=Threads.nthreads())
+function newton_step!(X, delta_x, projections, proj_X, proj_rank; nthreads=Threads.nthreads())
     @tasks for i in axes(X, 2)
         @set ntasks=nthreads           
         @local begin
@@ -92,7 +92,7 @@ function pcd_sample(projections::Projections, init_samples, stop_condition; use_
         if use_local
             local_update!(X, delta_x, projections, proj_X, proj_rank; nthreads)
         else
-            netwon_step!(X, delta_x, projections, proj_X, proj_rank; nthreads)
+            newton_step!(X, delta_x, projections, proj_X, proj_rank; nthreads)
         end
         iters += 1
     end
