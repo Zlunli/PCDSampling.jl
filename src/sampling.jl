@@ -83,30 +83,12 @@ nthreads:
   使用多少线程并行
 """
 function netwon_step!(X, delta_x, projections, proj_X, proj_rank; nthreads=Threads.nthreads())
-    # 使用 OhMyThreads 的 @tasks 并行遍历每一个 sample
-    #
-    # axes(X, 2) 表示 X 的第 2 维索引
-    # 因为 X 是 dim × N，所以 axes(X, 2) 就是 1:N
-    #
-    # 换句话说：
-    #   for i in axes(X, 2)
-    #
-    # 表示对每一个 sample i 做更新
+
     @tasks for i in axes(X, 2)
 
         # 设置并行任务数量
         @set ntasks=nthreads     
         
-        # 为每个 task 创建局部变量
-        #
-        # local_delta:
-        #   当前 sample 的梯度方向累积量，大小是 dim
-        #
-        # hess_x:
-        #   当前 sample 的 Hessian 近似矩阵，大小是 dim × dim
-        #
-        # @local 的作用是：
-        #   在线程/任务内部复用这些局部数组，避免每次循环都重新分配内存
         @local begin
             local_delta = zeros(eltype(X), size(X, 1))
             hess_x = zeros(eltype(X), size(X, 1), size(X, 1))
@@ -220,24 +202,11 @@ function netwon_step!(X, delta_x, projections, proj_X, proj_rank; nthreads=Threa
     end
 end
 
-# 使用更局部、更简单的近似方式更新每个 sample
-"""
-对所有 samples 做一次 local update
-
-这个版本比 netwon_step! 更简单：
-
-它不构造完整 dim × dim Hessian，
-而是在每个投影方向上用 step / hess_step 做一维缩放，
-再沿着投影方向反投影回高维。
-
-输入参数含义与 netwon_step! 基本相同。
-"""
 function local_update!(X, delta_x, projections, proj_X, proj_rank; nthreads=Threads.nthreads())
     # 对每个 sample 并行更新
     @tasks for i in axes(X, 2)
         @set ntasks=nthreads 
         
-        # 清空第 i 个 sample 的更新量
         delta_x[:, i] .= 0.0
 
         # 遍历所有投影方向
@@ -246,58 +215,17 @@ function local_update!(X, delta_x, projections, proj_X, proj_rank; nthreads=Thre
             # 计算当前 sample 在当前方向上的一维误差项和 PDF 项
             step, hess_step = cvm_grad_hess(target, proj_X[i, m], proj_rank[i, m], size(X, 2))
             
-            # 沿着当前投影方向 dir 累加更新量
-            #
-            # step / hess_step 类似一维 Newton step
-            #
             # max(hess_step, 1e-3) 是为了避免除以太小的 PDF
-            # 如果 hess_step 很小，直接除会导致更新量爆炸
             for j in axes(delta_x, 1)
                 delta_x[j, i] += dir[j] * (step / max(hess_step, 1e-3))
             end
         end
         # 对所有方向的更新取平均
-        #
-        # 如果有 M 个投影方向，那么：
-        #
-        # delta_x[:, i] = delta_x[:, i] / M
         delta_x[:, i] ./= length(projections)
         @views X[:, i] .+= delta_x[:, i]
     end
 end
 
-# 主迭代循环：投影 → 排序 → 计算 rank → 更新样本 → 判断停止
-"""
-PCD 主迭代函数
-
-projections:
-  Projections 对象
-  包含所有目标投影分布和对应方向
-
-init_samples:
-  初始样本矩阵
-  size(init_samples) = dim × N
-
-stop_condition:
-  停止条件函数
-  每次迭代前会调用 stop_condition(delta_x)
-
-use_local:
-  是否使用 local_update!
-  如果 false，则使用 netwon_step!
-
-verbose:
-  是否打印最终迭代次数和最终 delta norm
-
-nthreads:
-  使用多少线程
-
-返回：
-  X:
-      最终 sample 矩阵
-  iters:
-      实际迭代次数
-"""
 function pcd_sample(projections::Projections, init_samples, stop_condition; use_local=false, verbose=true, nthreads=Threads.nthreads())
     
     # X 是当前样本点矩阵
@@ -317,19 +245,11 @@ function pcd_sample(projections::Projections, init_samples, stop_condition; use_
     # sp 可以理解为 sorted permutation
     proj_sp = zeros(Int, size(X, 2), length(projections))
 
-    # proj_rank 保存每个 sample 在每个方向上的 rank
-    # proj_rank[i, m] 表示第 i 个 sample 在第 m 个方向上的排序名次
-    # 它是 proj_sp[:, m] 的 inverse permutation
     proj_rank = zeros(Int, size(X, 2), length(projections))
 
     # TODO: For weighted samples maintain cumsum of weights instead of sample rank
-    #
     # 当前代码假设所有 Dirac samples 权重相同，都是 1/N
-    #
     # 所以 empirical CDF 可以直接用 rank:
-    #
-    # F_D(x_i) ≈ (rank_i - 0.5) / N
-    #
     # 如果以后支持 weighted samples，则不能只用 rank，
     # 而应该按照排序后的权重做 cumulative sum。
 
