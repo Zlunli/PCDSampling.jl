@@ -301,72 +301,25 @@ nthreads:
 function pcd_sample(projections::Projections, init_samples, stop_condition; use_local=false, verbose=true, nthreads=Threads.nthreads())
     
     # X 是当前样本点矩阵
-    #
-    # 注意：这里不是复制，而是直接引用 init_samples
-    #
-    # 所以后面对 X 的原地修改，也会修改传入的 init_samples
     X = init_samples
 
     # 取出所有投影方向
-    #
-    # get_dirs(projections) 在 projections.jl 中定义为：
-    #
-    # get_dirs(projs::Projections) = eachcol(projs.dirs)
-    #
-    # 所以 directions 是一个按列访问方向的迭代对象
     directions = get_dirs(projections)
 
     # 初始化 delta_x
-    #
     # 它保存每个 sample 的更新量
-    #
-    # size(delta_x) = size(X) = dim × N
-    #
-    # 初始设为全 1，是为了保证第一次 stop_condition(delta_x) 不会因为 delta 太小而停止
     delta_x = ones(eltype(X), size(X))
 
     # proj_X 保存所有 sample 在所有方向上的投影值
-    #
-    # size(proj_X) = N × M
-    #
-    # 其中：
-    #   N = size(X, 2) 是 sample 数量
-    #   M = length(projections) 是投影方向数量
-    #
-    # proj_X[i, m] 表示第 i 个 sample 在第 m 个方向上的投影值
     proj_X = zeros(eltype(X), size(X, 2), length(projections))
 
     # proj_sp 保存每个方向上的排序 permutation
-    #
     # sp 可以理解为 sorted permutation
-    #
-    # proj_sp[:, m] 是第 m 个方向上的排序索引
-    #
-    # 如果：
-    #   proj_sp[:, m] = [3, 1, 2]
-    #
-    # 表示在第 m 个方向上：
-    #   第 3 个 sample 的投影最小
-    #   第 1 个 sample 的投影第二小
-    #   第 2 个 sample 的投影最大
     proj_sp = zeros(Int, size(X, 2), length(projections))
 
     # proj_rank 保存每个 sample 在每个方向上的 rank
-    #
     # proj_rank[i, m] 表示第 i 个 sample 在第 m 个方向上的排序名次
-    #
     # 它是 proj_sp[:, m] 的 inverse permutation
-    #
-    # 例如：
-    #   proj_sp[:, m] = [3, 1, 2]
-    #
-    # 则：
-    #   sample 3 的 rank 是 1
-    #   sample 1 的 rank 是 2
-    #   sample 2 的 rank 是 3
-    #
-    # 所以：
-    #   proj_rank[:, m] = [2, 3, 1]
     proj_rank = zeros(Int, size(X, 2), length(projections))
 
     # TODO: For weighted samples maintain cumsum of weights instead of sample rank
@@ -382,153 +335,29 @@ function pcd_sample(projections::Projections, init_samples, stop_condition; use_
 
     # 初始化所有方向上的投影值、排序 permutation 和 rank
     for (i, dir) in enumerate(directions)
-        # 计算所有 samples 在第 i 个方向 dir 上的投影
-        #
-        # X 的大小是 dim × N
-        # dir 的大小是 dim
-        #
-        # 数学上：
-        #
-        # proj_X[:, i] = X' * dir
-        #
-        # 也就是：
-        #
-        # proj_X[j, i] = dir' * X[:, j]
-        #
-        # 第 j 个 sample 在方向 dir 上的投影值
-        #
-        # 这里用 mul! 做原地矩阵乘法，避免临时数组
-        #
-        # @view(proj_X[:, i:i])' 的形状可以理解为 1 × N
-        # dir' 的形状是 1 × dim
-        # X 的形状是 dim × N
-        #
-        # 所以：
-        #
-        # dir' * X 是 1 × N
-        #
-        # 再写入 proj_X[:, i] 对应的位置
         mul!(@view(proj_X[:, i:i])', dir', X)
-
-        # 对第 i 个方向上的投影值排序
-        #
-        # sortperm!(dest, values)
-        #
-        # 会把排序后的索引写入 dest
-        #
-        # @view(proj_sp[:, i]) 是目标存储位置
-        # @view(proj_X[:, i]) 是要排序的投影值
-        #
-        # 结果：
-        #   proj_sp[:, i] 保存按 proj_X[:, i] 从小到大排序后的 sample index
         sortperm!(@view(proj_sp[:, i]), @view(proj_X[:, i]))
 
-        # 计算 inverse permutation
-        #
-        # proj_sp[:, i]:
-        #   rank -> sample index
-        #
-        # invperm(proj_sp[:, i]):
-        #   sample index -> rank
-        #
-        # 然后保存到 proj_rank[:, i]
         proj_rank[:, i] .= invperm(@view(proj_sp[:, i]))
     end
 
     # 记录迭代次数
     iters = 0
 
-    # 主迭代循环
-    #
-    # stop_condition(delta_x) 返回 true 时停止
-    #
-    # 注意：
-    #   delta_x 初始是全 1，所以第一次通常不会停止
-    #
-    # 每轮迭代大致做：
-    #
-    # 1. 更新所有 sample 在所有方向上的投影值
-    # 2. 更新每个方向上的排序和 rank
-    # 3. 根据 use_local 选择更新方法
-    # 4. 更新 sample 位置 X
-    # 5. iters += 1
     while !stop_condition(delta_x)
 
-        # 并行遍历每个投影方向
-        #
-        # eachindex(directions) 理论上表示所有方向的索引
-        #
-        # 每个任务负责一个方向：
-        #   - 重新计算 proj_X[:, i]
-        #   - 根据新的投影值更新排序 permutation proj_sp[:, i]
-        #   - 同步更新 proj_rank[:, i]
         @tasks for i in eachindex(directions)
             @set ntasks=nthreads           
 
-            # 重新计算所有 samples 在第 i 个方向上的投影
-            #
-            # proj_X[:, i] = directions[i]' * X
-            #
-            # @view(proj_X[:, i])' 是 1 × N
-            # directions[i]' 是 1 × dim
-            # X 是 dim × N
             mul!(@view(proj_X[:, i])', directions[i]', X)
 
-            # 取出第 i 个方向对应的排序 permutation
             sp = @view(proj_sp[:, i])
-
-            # 根据新的 proj_X，对排序 permutation 做局部修正
-            #
-            # 这里没有重新完整 sortperm!
-            # 而是基于上一轮的排序结果，做类似 insertion-sort 的局部调整
-            #
-            # 这样做的原因是：
-            #   每次迭代 sample 位置通常只移动一点
-            #   所以排序不会发生巨大变化
-            #   用局部交换比每轮完整排序更快
             for j in eachindex(sp)
-
-                # k 表示当前元素往前移动了多少步
-                #
-                # 初始 k = 0
-                # 后面每交换一次，k -= 1
-                #
-                # 所以 j+k 表示当前正在检查的位置
                 k = 0
-
-                # 只要当前排序中相邻两个元素顺序不对，就交换它们
-                #
-                # 条件解释：
-                #
-                # j+k < length(sp)
-                #   确保可以访问 sp[j+k+1]
-                #
-                # j+k > 0
-                #   确保当前索引合法
-                #
-                # proj_X[sp[j+k], i] > proj_X[sp[j+k+1], i]
-                #   如果前一个 sample 的投影值大于后一个，
-                #   说明排序顺序错了，需要交换
                 while j+k < length(sp) && j+k > 0 && proj_X[sp[j+k], i] > proj_X[sp[j+k+1], i]
-                    
-                    # 交换相邻两个 sample index
                     sp[j+k], sp[j+k+1] = sp[j+k+1], sp[j+k]
-
-                    # 交换之后，更新这两个 sample 的 rank
-                    #
-                    # 注意这里的 sp[j+k] 和 sp[j+k+1]
-                    # 已经是交换之后的 sample index
-                    #
-                    # sp[j+k] 被交换到了更靠前的位置，所以 rank 减 1
                     proj_rank[sp[j+k], i] -= 1
-
-                    # sp[j+k+1] 被交换到了更靠后的位置，所以 rank 加 1
                     proj_rank[sp[j+k+1], i] += 1
-
-                    # 继续向前检查
-                    #
-                    # 如果某个 sample 一直需要往前移动，
-                    # k 会变成 -1, -2, -3, ...
                     k -= 1
                 end
             end
