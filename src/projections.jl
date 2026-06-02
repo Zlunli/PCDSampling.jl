@@ -3,7 +3,7 @@ struct Projections{P, T}
     dirs::Matrix{T}
 end
 
-get_targets(projs::Projections) = projs.projections
+get_projs(projs::Projections) = projs.projections
 get_dirs(projs::Projections) = eachcol(projs.dirs)
 Base.getindex(projs::Projections, i::Int) = (projs.projections[i], @view(projs.dirs[:, i]))
 
