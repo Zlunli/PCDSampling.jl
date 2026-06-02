@@ -11,12 +11,12 @@ end
 
 @testset "draw samples" begin
     dist = MixtureModel([MvNormal([0.0, 0.0], I(2))])
-    X = draw_samples(dist, 10, uniform_directions_2d(20); verbose=false)
+    X = draw_samples(dist, 10, uniform_directions_2d(20); verbose=false)[1]
     @test size(X) == (2, 10)
 
-    X = draw_samples(dist, 10, uniform_directions_2d(20); verbose=false, N_lut=-1)
+    X = draw_samples(dist, 10, uniform_directions_2d(20); verbose=false, N_lut=-1)[1]
     @test size(X) == (2, 10)
 
-    X = draw_samples(dist, 10, uniform_directions_2d(20); verbose=false, use_local=true)
+    X = draw_samples(dist, 10, uniform_directions_2d(20); verbose=false, use_local=true)[1]
     @test size(X) == (2, 10)
 end
