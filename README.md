@@ -1,5 +1,3 @@
-[TOC]
-
 ## 1. Overview
 
 ### 1.1 About This Repository
@@ -761,19 +759,24 @@ proj_dist = project(dist, u)
 ```
 
 If
-$$
+
+```math
 \mathbf{x} \sim \mathcal{N}(\mathbf{m}, \mathbf{C}),
-$$
+```
+
 then the projected scalar variable
-$$
+
+```math
 r = \mathbf{u}_k^\top \mathbf{x}
-$$
+```
+
 is Gaussian with
-$$
+
+```math
 m_k = \mathbf{u}_k^\top \mathbf{m},
 \qquad
 \sigma_k^2 = \mathbf{u}_k^\top \mathbf{C}\mathbf{u}_k.
-$$
+```
 
 #### 4.6.2 Gaussian Mixture
 
