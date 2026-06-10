@@ -2,20 +2,118 @@
 
 ### 1.1 About This Repository
 
-PCDSampling.jl
+`PCDSampling.jl` is a Julia package for drawing deterministic samples from multivariate probability distributions using Projected Cumulative Distributions (PCDs).
 
-Draw deterministic samples from multivariate probability distributions.
-A Python version of PCD-sampling is available at [https://github.com/KIT-ISAS/PCD_sampling_py](https://github.com/KIT-ISAS/PCD_sampling_py).
+The package is developed alongside the paper
 
-#### Examples
+**Fast Deterministic Sampling of Gaussian Mixture Densities using Projected Cumulative Distributions**
 
-See the example scripts under `scripts/`.
+and provides CPU and GPU implementations of the proposed sampling method.
 
-GPU-acceleration currently only works with `CUDA.jl`.
+The main focus of this repository is deterministic sampling from Gaussian mixture densities. The implementation supports:
 
-#### Citation
+- deterministic sampling from multivariate distributions,
+- CPU execution with multithreading,
+- GPU acceleration with `CUDA.jl`,
+- lookup-table-based acceleration for Gaussian mixture densities,
+- scripts for reproducing the benchmark and paper figures.
 
+A Python implementation of PCD-based sampling is available at:
+
+```text
+https://github.com/KIT-ISAS/PCD_sampling_py
 ```
+
+GPU acceleration in this repository currently relies on `CUDA.jl` and therefore requires an NVIDIA GPU.
+
+### 1.2 Example Results
+
+The following figures show examples of deterministic samples generated with the proposed method.
+
+| Deterministic samples                                       | Random samples                                |
+| ----------------------------------------------------------- | --------------------------------------------- |
+| ![Deterministic samples](plots/1_deterministic_samples.svg) | ![Random samples](plots/1_random_samples.svg) |
+
+The deterministic samples are designed to cover the target density more evenly than random samples with the same sample size.
+
+Generated paper figures and benchmark plots are available in the `additional_paper_plots` branch:
+
+```text
+https://github.com/KIT-ISAS/PCDSampling.jl/tree/additional_paper_plots
+```
+
+In particular:
+
+- `paper_plots/plots/` contains qualitative paper figures such as deterministic samples, random samples, and optimization-method comparisons.
+- `benchmark/bench_plots/` contains runtime benchmark plots for CPU and GPU implementations.
+- `benchmark/bench_results/` contains the CSV files used to generate the benchmark plots.
+
+Example scripts are available in:
+
+```text
+scripts/
+```
+
+The CPU examples are defined in:
+
+```text
+scripts/examples.jl
+```
+
+The GPU examples are defined in:
+
+```text
+scripts/example_gpu.jl
+```
+
+### 1.3 Repository Structure
+
+The main repository structure is:
+
+```text
+.
+├── Project.toml
+├── README.md
+├── src/
+│   ├── PCDSampling.jl
+│   ├── lookup_table.jl
+│   ├── projections.jl
+│   └── sampling.jl
+├── ext/
+│   └── PCDSamplingCUDAExt.jl
+├── scripts/
+│   ├── examples.jl
+│   └── example_gpu.jl
+├── benchmark/
+│   ├── Project.toml
+│   ├── benchmarks.jl
+│   └── plot_results.jl
+└── test/
+    ├── Project.toml
+    └── runtests.jl
+```
+
+The most important folders are:
+
+- `src/`: main CPU implementation of the PCD sampling algorithm.
+- `ext/`: CUDA extension for GPU-accelerated sampling.
+- `scripts/`: small CPU and GPU example scripts.
+- `benchmark/`: benchmark scripts for reproducing runtime plots from the paper.
+- `test/`: package tests.
+
+The `additional_paper_plots` branch additionally contains:
+
+```text
+paper_plots/
+```
+
+This folder contains the scripts, input data, and generated files for reproducing the additional figures from the paper.
+
+### 1.4 Citation
+
+If you use this repository in your work, please cite:
+
+```bibtex
 @inproceedings{FUSION26_Prossel,
  address = {Trondheim, Norway},
  author = {Dominik Prossel and Zhilun Li and Petr Novikov and Uwe D. Hanebeck},
@@ -25,10 +123,6 @@ GPU-acceleration currently only works with `CUDA.jl`.
  year = {2026}
 }
 ```
-
-### 1.2 Example Results
-
-### 1.3 Repository Structure
 
 ## 2. Quick Run
 
