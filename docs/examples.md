@@ -156,6 +156,6 @@ Arguments:
 
 ## 5. Next Steps
 
-For lower-level API usage, see the [Usage Guide](docs/usage.md).
+For lower-level API usage, see the [Usage Guide](usage.md).
 
-To reproduce the figures and benchmark results from the paper, see [Reproducing Paper Results](docs/reproducing_paper_results.md).
+To reproduce the figures and benchmark results from the paper, see [Reproducing Paper Results](reproducing_paper_results.md).

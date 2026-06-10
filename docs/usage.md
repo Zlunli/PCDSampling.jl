@@ -383,6 +383,6 @@ The mixture weights $v_i$ remain unchanged.
 
 ## 7. Next Steps
 
-- For runnable examples, see [Running Example Code](docs/examples.md).
+- For runnable examples, see [Running Example Code](examples.md).
   
 - For reproducing paper figures and benchmark results, see [Reproducing Paper Results](reproducing_paper_results.md).

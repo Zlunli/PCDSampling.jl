@@ -303,8 +303,8 @@ LCD.svg
 
 ## 4. Next Steps
 
-- For installation instructions, see [Installation and Environment Setup](docs/installation.md).
+- For installation instructions, see [Installation and Environment Setup](installation.md).
   
 - For runnable examples, see [Running Example Code](example.md).
   
-- For API usage, see [Usage Guide](docs/usage.md).
+- For API usage, see [Usage Guide](usage.md).

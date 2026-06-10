@@ -165,8 +165,8 @@ Pkg.precompile()
 
 After the environment has been set up, continue with:
 
-- [Running examples](docs/examples.md)
+- [Running examples](examples.md)
   
-- [Usage guide](docs/usage.md)
+- [Usage guide](usage.md)
   
-- [Reproducing paper results](docs/reproducing_paper_results.md)
+- [Reproducing paper results](reproducing_paper_results.md)
