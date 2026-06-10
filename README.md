@@ -48,9 +48,9 @@ sample_gaussian(N=500, P=100, L=-1, use_local=false)
 More detailed instructions are available here:
 
 - [Installation and environment setup](docs/installation.md)
-- [Running examples](examples.md)
-- [Reproducing paper results](reproducing_paper_results.md)
-- [Usage guide](usage.md)
+- [Running examples](docs/examples.md)
+- [Reproducing paper results](docs/reproducing_paper_results.md)
+- [Usage guide](docs/usage.md)
 
 ## Repository Structure
 
