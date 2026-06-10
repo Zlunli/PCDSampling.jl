@@ -305,6 +305,6 @@ LCD.svg
 
 - For installation instructions, see [Installation and Environment Setup](installation.md).
   
-- For runnable examples, see [Running Example Code](example.md).
+- For runnable examples, see [Running Example Code](examples.md).
   
 - For API usage, see [Usage Guide](usage.md).
