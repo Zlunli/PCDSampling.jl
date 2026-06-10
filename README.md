@@ -1,3 +1,5 @@
+[TOC]
+
 ## 1. Overview
 
 ### 1.1 About This Repository
@@ -391,6 +393,103 @@ benchmark/bench_plots/
 
 If the Python CSV file is not available, the Julia CPU/GPU benchmark plots can still be generated, but the Julia/Python comparison plot cannot be reproduced.
 
+### 3.2 Additional Paper Plots
+
+Additional plots from the paper can be reproduced from the [`additional_paper_plots` branch](https://github.com/KIT-ISAS/PCDSampling.jl/tree/additional_paper_plots).
+
+This branch contains the plotting code, input data, and pre-generated plot files used for the additional paper figures. The relevant files are located in:
+
+```text
+paper_plots/
+```
+
+The folder contains:
+
+```text
+paper_plots/Project.toml
+paper_plots/generate_plots.jl
+paper_plots/data/
+paper_plots/plots/
+```
+
+The `data/` folder contains input data required for generating the figures, and the `plots/` folder contains the generated `.pdf`, `.svg`, and `.png` files.
+
+---
+
+From the repository root, start Julia. Then activate the `paper_plots` environment inside the Julia REPL:
+
+```julia
+using Pkg
+Pkg.activate("paper_plots")
+Pkg.instantiate()
+Pkg.precompile()
+```
+
+Then run the plotting script:
+
+```julia
+include("paper_plots/generate_plots.jl")
+```
+
+The generated figures are saved to:
+
+```text
+paper_plots/plots/
+```
+
+---
+
+The script `generate_plots.jl` generates the following paper figures.
+
+The function `first_page()` generates the deterministic sampling and random sampling comparison used in Fig. 1. It reads the data file
+
+```text
+paper_plots/data/2000.csv
+```
+
+to construct the target Gaussian mixture density. It then draws deterministic samples using the proposed PCD-based method and compares them with random samples from the same target density.
+
+The generated files are:
+
+```text
+first_page.pdf
+first_page.svg
+first_page_random.pdf
+first_page_random.svg
+```
+
+The function `slices_and_projections()` generates the slice-and-projection illustration used in Fig. 2. It constructs a two-dimensional Gaussian mixture density and visualizes the relationship between slices of the density and its one-dimensional projection.
+
+The generated files are:
+
+```text
+slices_and_projections.pdf
+slices_and_projections.png
+```
+
+The function `qualitative_comparison()` generates the qualitative comparison of different optimization methods used in Fig. 3. It compares:
+
+- the original local update scheme,
+- the proposed Newton-like update scheme,
+- LCD reference samples.
+
+The LCD samples are not computed by this repository. Instead, they are loaded from the provided data file:
+
+```text
+paper_plots/data/lcd_samples.csv
+```
+
+The generated files are:
+
+```text
+original.pdf
+original.svg
+proposed.pdf
+proposed.svg
+LCD.pdf
+LCD.svg
+```
+
 ## 4. Usage
 
 ### 4.1 CPU Sampling with `draw_samples`
@@ -696,15 +795,19 @@ proj_dist = project(dist, u)
 ```
 
 If the target density is a Gaussian mixture
-$$
+
+```math
 f(\mathbf{x}) =
 \sum_{i=1}^{C}
 v_i \mathcal{N}(\mathbf{m}_i, \mathbf{C}_i),
-$$
+```
+
 then its projection along direction $\mathbf{u}_k$ is a one-dimensional Gaussian mixture with projected means and variances
-$$
+
+```math
 m_{k,i} = \mathbf{u}_k^\top \mathbf{m}_i,
 \qquad
 \sigma_{k,i}^2 = \mathbf{u}_k^\top \mathbf{C}_i \mathbf{u}_k.
-$$
+```
+
 The mixture weights $v_i$ remain unchanged.
